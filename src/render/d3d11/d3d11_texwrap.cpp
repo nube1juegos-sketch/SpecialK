@@ -1,4 +1,4 @@
-﻿/**
+/**
  * This file is part of Special K.
  *
  * Special K is free software : you can redistribute it
@@ -14497,7 +14497,7 @@ bool         SK_D3D11_inject_textures_ffx = false;
 bool         SK_D3D11_inject_textures     = false;
 bool         SK_D3D11_cache_textures      = false;
 bool         SK_D3D11_mark_textures       = false;
-std::wstring SK_D3D11_res_root            = L"SK_Res";
+std::wstring SK_D3D11_res_root            = L"SK_Res"; // Modified: resolved to game root at runtime
 
 bool
 SK_D3D11_TexMgr::isTexture2D (uint32_t crc32, const D3D11_TEXTURE2D_DESC *pDesc)
@@ -15447,7 +15447,7 @@ SK_D3D11_PopulateResourceList (bool refresh)
   wchar_t wszTexInjectDir     [ MAX_PATH + 2 ] = { };
 
   lstrcatW (wszTexInjectDir_RAW, SK_D3D11_res_root.c_str ());
-  lstrcatW (wszTexInjectDir_RAW, LR"(\inject\textures)");
+  lstrcatW (wszTexInjectDir_RAW, LR"(\injec\textures)"); // MODIFIED: injec instead of inject
 
   wcscpy ( wszTexInjectDir,
              SK_EvalEnvironmentVars (wszTexInjectDir_RAW).c_str () );
@@ -15472,7 +15472,7 @@ SK_D3D11_PopulateResourceList (bool refresh)
   wchar_t wszTexInjectDir_FFX     [ MAX_PATH + 2 ] = { };
 
   lstrcatW (wszTexInjectDir_FFX_RAW, SK_D3D11_res_root.c_str ());
-  lstrcatW (wszTexInjectDir_FFX_RAW, LR"(\inject\textures\UnX_Old)");
+  lstrcatW (wszTexInjectDir_FFX_RAW, LR"(\injec\textures\UnX_Old)"); // MODIFIED: injec
 
   wcscpy ( wszTexInjectDir_FFX,
              SK_EvalEnvironmentVars (wszTexInjectDir_FFX_RAW).c_str () );
@@ -15538,8 +15538,9 @@ SK_D3D11_SetResourceRoot (const wchar_t* root)
   if (! wcsstr (root, L":"))
   {
          wchar_t wszPath [MAX_PATH * 2] = { };
-    wcsncpy     (wszPath, SK_IsInjected () ? SK_GetConfigPath () :
-                                             SK_GetRootPath   (),  MAX_PATH);
+    // MODIFIED: Always resolve SK_Res relative to the game folder,
+    // so dump/inject paths sit next to the game exe regardless of injection mode.
+    wcsncpy     (wszPath, SK_GetRootPath (), MAX_PATH);
     PathAppendW (wszPath, root);
 
     SK_D3D11_res_root = wszPath;
@@ -16463,6 +16464,20 @@ SK_D3D11_DumpTexture2D ( _In_ ID3D11Texture2D* pTex, uint32_t crc32c )
 
         SK_D3D11_AddDumped (crc32c, crc32c);
 
+        // MODIFIED: Show a small corner notification when a texture is dumped
+        char szNotifMsg [128] = { };
+        snprintf ( szNotifMsg, sizeof (szNotifMsg) - 1,
+                   "Texture dumped: %08X", crc32c );
+
+        SK_ImGui_CreateNotification (
+          "SK.TextureDump", SK_ImGui_Toast::Info,
+          szNotifMsg, "Texture Dump",
+          2000UL,
+          SK_ImGui_Toast::UseDuration |
+          SK_ImGui_Toast::ShowCaption |
+          SK_ImGui_Toast::ShowTitle
+        );
+
         return hr;
       }
     }
@@ -17006,6 +17021,20 @@ SK_D3D11_DumpTexture2D (  _In_ const D3D11_TEXTURE2D_DESC   *pDesc,
       if (SUCCEEDED (hr))
       {
         SK_D3D11_Textures.dumped_texture_bytes += SK_File_GetSize (wszOutName);
+
+        // MODIFIED: Show a small corner notification when a texture is dumped
+        char szNotifMsg [128] = { };
+        snprintf ( szNotifMsg, sizeof (szNotifMsg) - 1,
+                   "Texture dumped: %08X", top_crc32 );
+
+        SK_ImGui_CreateNotification (
+          "SK.TextureDump", SK_ImGui_Toast::Info,
+          szNotifMsg, "Texture Dump",
+          2000UL,
+          SK_ImGui_Toast::UseDuration |
+          SK_ImGui_Toast::ShowCaption |
+          SK_ImGui_Toast::ShowTitle
+        );
       }
     }
   }
